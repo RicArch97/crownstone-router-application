@@ -1,0 +1,10 @@
+{
+  "name": "crownstone-router-application",
+  "version": "0.1",
+  "description": "Application code for the Crownstone router",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "MIT"
+}
