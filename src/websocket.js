@@ -6,7 +6,7 @@ class WebSocketServer extends EventEmitter {
   constructor(options = {}) {
     super();
     this.clients = new Set();
-    this.port = options.port || 4000;
+    this.port = options.port || 8080;
     this.GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
     this.OPCODES = { text: 0x01, close: 0x08 };
     this._init();
