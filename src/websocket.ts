@@ -1,33 +1,47 @@
-const http = require('node:http');
-const crypto = require('node:crypto');
-const { EventEmitter } = require('node:events');
+/**
+ * Websocket for 2 way internet communication
+ */
+import * as http from "http";
+import * as crypto from "crypto";
+import { EventEmitter } from "events";
+import { Buffer } from "buffer";
+import internal from "stream";
 
-class WebSocketServer extends EventEmitter {
-  constructor(options = {}) {
+interface Opcodes {
+  text : number;
+  close: number;
+}
+
+export class WebSocketServer extends EventEmitter {
+  clients : Set<internal.Duplex> = new Set();
+  port : number;
+  guid: string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+  opcodes : Opcodes = { text: 0x01, close: 0x08 };
+
+  _server? : http.Server;
+
+  constructor(port : number) {
     super();
-    this.clients = new Set();
-    this.port = options.port || 8080;
-    this.GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
-    this.OPCODES = { text: 0x01, close: 0x08 };
+    this.port = port || 8080;
     this._init();
   }
 
-  parseFrame(buffer) {
+  parseFrame(buffer : Buffer) {
     const firstByte = buffer.readUInt8(0);
     // get opcode from frame (last 4 bits, according to RFC spec)
-    const opCode = firstByte & 0b00001111;
+    const opCode = firstByte & 0xF;
 
-    if (opCode === this.OPCODES.close) {
+    if (opCode === this.opcodes.close) {
       this.emit('close');
-      return null;
-    } else if (opCode !== this.OPCODES.text) {
+      return;
+    } else if (opCode !== this.opcodes.text) {
       return;
     }
 
     const secondByte = buffer.readUInt8(1);
     let bufferByteOffset = 2;
      // parse payload length, last 7 bits of byte 2
-    let payloadLength = secondByte & 0b01111111;
+    let payloadLength = secondByte & 0x7F;
 
     // if length 126, use 2 bytes length, 8 bytes if 127 (according to RFC spec)
     if (payloadLength === 126) {
@@ -47,13 +61,13 @@ class WebSocketServer extends EventEmitter {
       // unmask data if masking key is provided
       const result = this._unmask(payload, maskingKey);
 
-      return result.toString('utf-8');
+      return result;
     }
 
-    return buffer.subarray(bufferByteOffset).toString('utf-8');
+    return buffer.subarray(bufferByteOffset);
   }
 
-  createFrame(payload) {
+  createFrame(payload : Buffer) {
     const uint16Size = 65535;
 
     const payloadByteLength = Buffer.byteLength(payload);
@@ -73,7 +87,7 @@ class WebSocketServer extends EventEmitter {
 
     // first byte
     // [FIN (1), RSV1 (0), RSV2 (0), RSV3 (0), Opode (0x01 - text frame)]
-    buffer.writeUInt8(0b10000001, 0);
+    buffer.writeUInt8(0x81, 0);
     // when smaller than 125, write actual size
     buffer[1] = payloadLength;
 
@@ -83,74 +97,82 @@ class WebSocketServer extends EventEmitter {
     } else if (payloadByteLength === 127) {
       buffer.writeBigInt64BE(BigInt(payloadByteLength), 2);
     }
+    
+    // copy the entire payload into buffer, starting at payloadBytesOffset
+    payload.copy(buffer, payloadBytesOffset);
 
-    buffer.write(payload, payloadBytesOffset);
     return buffer;
   }
 
-  addEventListener(callback) {
-    this._server.listen(this.port, callback);
+  addEventListener(callback : (() => void)) {
+    if (this._server) {
+      this._server.listen(this.port, callback);
+    }
   }
 
   _init() {
-    if (this._server) throw new Error('Server already initialized');
+    if (this._server) throw new Error("Server already initialized");
 
-    this._server = http.createServer((request, response) => {
+    this._server = http.createServer((_, response) => {
       const UPGRADE_REQUIRED = 426;
       const body = http.STATUS_CODES[UPGRADE_REQUIRED];
       response.writeHead(UPGRADE_REQUIRED, {
-        'Content-Type': 'text/plain',
-        'Upgrade': 'WebSocket',
+        "Content-Type": "text/plain",
+        "Upgrade": "WebSocket",
       });
       response.end(body);
     });
 
-    this._server.on('upgrade', (request, socket) => {
-      this.emit('headers', request);
+    this._server.on("upgrade", (request, socket) => {
+      this.emit("headers", request);
 
-      if (request.headers.upgrade !== 'websocket') {
-        socket.end('HTTP/1.1 400 Bad Request');
+      if (request.headers.upgrade !== "websocket") {
+        socket.end("HTTP/1.1 400 Bad Request");
         return;
       }
 
-      const acceptKey = request.headers['sec-websocket-key'];
+      const acceptKey = request.headers["sec-websocket-key"];
+      if (!acceptKey) {
+        socket.end("HTTP/1.1 400 Bad Request");
+        return;
+      }
       const acceptValue = this._generateAcceptValue(acceptKey);
 
       const responseHeaders = [
-        'HTTP/1.1 101 Switching Protocols',
-        'Upgrade: websocket',
-        'Connection: Upgrade',
+        "HTTP/1.1 101 Switching Protocols",
+        "Upgrade: websocket",
+        "Connection: Upgrade",
         `Sec-WebSocket-Accept: ${acceptValue}`,
       ];
 
       this.clients.add(socket);
-      socket.write(responseHeaders.concat('\r\n').join('\r\n'));
+      socket.write(responseHeaders.concat("\r\n").join("\r\n"));
 
-      socket.on('data', (buffer) =>
-        console.log(`Received message: ${this.parseFrame(buffer)}`)
+      socket.on("data", (buffer) =>
+        this.emit("data", this.parseFrame(buffer))
       );
 
-      this.on('close', () => {
+      this.on("close", () => {
         this.clients.delete(socket);
         socket.destroy();
       });
     });
   }
 
-  _generateAcceptValue(acceptKey) {
+  _generateAcceptValue(acceptKey : string) {
     return crypto
-      .createHash('sha1')
-      .update(acceptKey + this.GUID, 'binary')
-      .digest('base64');
+      .createHash("sha1")
+      .update(acceptKey + this.guid, "binary")
+      .digest("base64");
   }
 
-  _unmask(payload, maskingKey) {
+  _unmask(payload : Buffer, maskingKey : number) {
     const result = Buffer.alloc(payload.byteLength);
 
     for (let i = 0; i < payload.byteLength; ++i) {
       const j = i % 4;
       const maskingKeyByteShift = j === 3 ? 0 : (3 - j) << 3;
-      const maskingKeyByte = (maskingKeyByteShift === 0 ? maskingKey : maskingKey >>> maskingKeyByteShift) & 0b11111111;
+      const maskingKeyByte = (maskingKeyByteShift === 0 ? maskingKey : maskingKey >>> maskingKeyByteShift) & 0xFF;
       const transformedByte = maskingKeyByte ^ payload.readUInt8(i);
       result.writeUInt8(transformedByte, i);
     }
@@ -158,5 +180,3 @@ class WebSocketServer extends EventEmitter {
     return result;
   }
 }
-
-module.exports = WebSocketServer;
