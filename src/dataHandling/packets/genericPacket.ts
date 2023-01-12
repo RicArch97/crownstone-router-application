@@ -1,9 +1,10 @@
 /**
- * General packet definition in the Crownstone router protocol
+ * Generic packet definition in the Crownstone router protocol
  */
 import { Buffer } from "buffer";
+import { PROTOCOL_VERSION } from "../../declarations/const";
 
-export class GeneralPacket {
+export class GenericPacket {
   protocolVersion!: number;
   payloadType!: number;
   payloadLength!: number;
@@ -25,33 +26,28 @@ export class GeneralPacket {
     this.payloadLength = data.readUInt16BE(byteOffset);
     byteOffset += 2;
 
-    if (data.length < (byteOffset + this.payloadLength)) {
+    if (data.length < byteOffset + this.payloadLength) {
       this.valid = false;
     }
 
     // get payload according to the provided message length
-    this.payload = data.subarray(byteOffset, (byteOffset + this.payloadLength));
+    this.payload = data.subarray(byteOffset, byteOffset + this.payloadLength);
   }
 }
 
-export class GeneralWrapper {
+export class GenericPacketWrapper {
+  static wrap(payloadType: number, payload: Buffer): Buffer {
+    const data = Buffer.alloc(3 + payload.byteLength);
 
-  constructor(packet: GeneralPacket) {
-    this.wrap(packet);
-  }
-
-  wrap(packet: GeneralPacket) : Buffer {
-    const data = Buffer.alloc(3 + packet.payloadLength);
-
-    data.writeUInt8(packet.protocolVersion, 0);
-    data.writeUint8(packet.payloadType, 1);
+    data.writeUInt8(PROTOCOL_VERSION, 0);
+    data.writeUint8(payloadType, 1);
     let byteOffset = 2;
     // write big endian, firmware also expects this
-    data.writeUInt16BE(packet.payloadLength, byteOffset);
+    data.writeUInt16BE(payload.byteLength, byteOffset);
     byteOffset += 2;
 
     // copy all bytes from payload into data, starting at byteOffset
-    packet.payload.copy(data, byteOffset);
+    payload.copy(data, byteOffset);
 
     return data;
   }

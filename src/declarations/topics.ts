@@ -7,5 +7,8 @@ export const topics = {
 
   // received packets
   GeneralPacket: "GeneralPacket",
-  DataPacket: "DataPacket"
+  DataPacket: "DataPacket",
+
+  // write data to socket
+  WriteData: "WriteData"
 }

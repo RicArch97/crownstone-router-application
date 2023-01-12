@@ -3,16 +3,22 @@
  */
 
 import { topics } from "./declarations/topics";
-import { GeneralPacket } from "./packets/generalPacket";
-import { PacketParser } from "./packets/packetHandler";
+import { GenericPacket } from "./dataHandling/packets/genericPacket";
+import { PacketParser } from "./dataHandling/packetHandler";
+import { UPGRADE_REQUIRED, UINT16_SIZE } from "./declarations/const";
 
-import { EventBusClass } from "crownstone-core"
+import { EventBusClass } from "crownstone-core";
 
 import * as http from "http";
 import * as crypto from "crypto";
 import { EventEmitter } from "events";
 import { Buffer } from "buffer";
 import internal from "stream";
+
+interface WebSocketOpcodes {
+  text: number;
+  close: number;
+}
 
 export class WebSocketServer extends EventEmitter {
   clients: Set<internal.Duplex> = new Set();
@@ -32,10 +38,10 @@ export class WebSocketServer extends EventEmitter {
   parseFrame(buffer: Buffer): Buffer | undefined {
     const firstByte = buffer.readUInt8(0);
     // get opcode from frame (last 4 bits, according to RFC spec)
-    const opCode = firstByte & 0xF;
+    const opCode = firstByte & 0xf;
 
     if (opCode === this.opCodes.close) {
-      this.emit('close');
+      this.emit("close");
       return;
     } else if (opCode !== this.opCodes.text) {
       return;
@@ -44,7 +50,7 @@ export class WebSocketServer extends EventEmitter {
     const secondByte = buffer.readUInt8(1);
     let bufferByteOffset = 2;
     // parse payload length, last 7 bits of byte 2
-    let payloadLength = secondByte & 0x7F;
+    let payloadLength = secondByte & 0x7f;
 
     // if length 126, use 2 bytes length, 8 bytes if 127 (according to RFC spec)
     if (payloadLength === 126) {
@@ -71,14 +77,12 @@ export class WebSocketServer extends EventEmitter {
   }
 
   createFrame(payload: Buffer): Buffer {
-    const uint16Size = 65535;
-
     const payloadByteLength = Buffer.byteLength(payload);
     let payloadBytesOffset = 2;
     let payloadLength = payloadByteLength;
 
     // if payloadlength cannot fit into 2 bytes, use extended payload length (8 bits)
-    if (payloadByteLength > uint16Size) {
+    if (payloadByteLength > UINT16_SIZE) {
       payloadBytesOffset += 8;
       payloadLength = 127;
     } else if (payloadByteLength > 125) {
@@ -107,7 +111,7 @@ export class WebSocketServer extends EventEmitter {
     return buffer;
   }
 
-  addConnectionListener(callback: (() => void)) {
+  addConnectionListener(callback: () => void) {
     if (this._server) {
       this._server.listen(this.port, callback);
     }
@@ -117,15 +121,18 @@ export class WebSocketServer extends EventEmitter {
     return this.eventBus.on(topic, callback);
   }
 
+  fireEvent(topic: string, data?: Buffer) {
+    this.eventBus.emit(topic, data);
+  }
+
   _init() {
     if (this._server) throw new Error("Server already initialized");
 
     this._server = http.createServer((_, response) => {
-      const UPGRADE_REQUIRED = 426;
       const body = http.STATUS_CODES[UPGRADE_REQUIRED];
       response.writeHead(UPGRADE_REQUIRED, {
         "Content-Type": "text/plain",
-        "Upgrade": "WebSocket",
+        Upgrade: "WebSocket",
       });
       response.end(body);
     });
@@ -159,11 +166,15 @@ export class WebSocketServer extends EventEmitter {
         // parse websocket frame
         const payload = this.parseFrame(buffer);
         if (payload) {
-          const generalPacket = new GeneralPacket(payload);
+          const generalPacket = new GenericPacket(payload);
           // parse the packet, emit events on the event bus
           PacketParser.parse(generalPacket, this.eventBus);
         }
       });
+
+      this.eventBus.on(topics.WriteData, (data: Buffer) =>
+        socket.write(this.createFrame(data))
+      );
 
       this.on(topics.Close, () => {
         this.clients.delete(socket);
@@ -185,7 +196,10 @@ export class WebSocketServer extends EventEmitter {
     for (let i = 0; i < payload.byteLength; ++i) {
       const j = i % 4;
       const maskingKeyByteShift = j === 3 ? 0 : (3 - j) << 3;
-      const maskingKeyByte = (maskingKeyByteShift === 0 ? maskingKey : maskingKey >>> maskingKeyByteShift) & 0xFF;
+      const maskingKeyByte =
+        (maskingKeyByteShift === 0
+          ? maskingKey
+          : maskingKey >>> maskingKeyByteShift) & 0xff;
       const transformedByte = maskingKeyByte ^ payload.readUInt8(i);
       result.writeUInt8(transformedByte, i);
     }

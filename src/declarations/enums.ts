@@ -5,7 +5,7 @@
 export const GenericPacketType = {
   PACKET_TYPE_CONTROL: 0,
   PACKET_TYPE_RESULT: 1,
-  PACKET_TYPE_DATA: 2
+  PACKET_TYPE_DATA: 2,
 };
 
 export const CommandPacketType = {
@@ -14,7 +14,8 @@ export const CommandPacketType = {
   COMMAND_TYPE_WIFI_CONNECT: 2,
   COMMAND_TYPE_WIFI_DISCONNECT: 3,
   COMMAND_TYPE_RESET: 4,
-  COMMAND_TYPE_FACTORY_RESET: 5
+  COMMAND_TYPE_FACTORY_RESET: 5,
+  COMMAND_TYPE_SWITCH: 6,
 };
 
 export const ResultPacketType = {
@@ -34,37 +35,37 @@ export const ResultPacketType = {
   RESULT_TYPE_NOT_IMPLEMENTED: 32,
   RESULT_TYPE_NOT_INITIALIZED: 33,
   RESULT_TYPE_READ_FAILED: 34,
-  RESULT_TYPE_UNSPECIFIED: 128
+  RESULT_TYPE_UNSPECIFIED: 128,
 };
 
-export const SourceType = {
-  SOURCE_TYPE_UART: 0,
-  SOURCE_TYPE_BLE: 1,
-  SOURCE_TYPE_CLOUD: 2
+export const InstanceType = {
+  INSTANCE_TYPE_UART: 0,
+  INSTANCE_TYPE_BLE: 1,
+  INSTANCE_TYPE_CLOUD: 2,
 };
 
-export const SourceIdUart = {
-  SOURCE_ID_UART_RS485: 0,
-  SOURCE_ID_UART_RS232: 1,
-  SOURCE_ID_UART_CM4: 2
+export const InstanceIdUart = {
+  INSTANCE_ID_UART_RS485: 0,
+  INSTANCE_ID_UART_RS232: 1,
+  INSTANCE_ID_UART_CM4: 2,
 };
 
-export const SourceIdCloud = {
-  SOURCE_ID_CLOUD_SERVER: 0
+export const InstanceIdCloud = {
+  INSTANCE_ID_CLOUD_SERVER: 0,
 };
 
-export const SourceIdBle = {
-  SOURCE_ID_BLE_MESH: 0,
-  SOURCE_ID_BLE_CLIENT: 1
+export const InstanceIdBle = {
+  INSTANCE_ID_BLE_MESH: 0,
+  INSTANCE_ID_BLE_CLIENT: 1,
 };
 
 export const ConfigType = {
   CONFIG_TYPE_WIFI_SSID: 0,
   CONFIG_TYPE_WIFI_PSK: 1,
-  CONFIG_TYPE_UART_BAUDRATE: 2
+  CONFIG_TYPE_UART_BAUDRATE: 2,
 };
 
 export const ConfigPersistenceMode = {
   CONFIG_PERSISTENCE_NODE_TEMPORARY: 0,
-  CONFIG_PERSISTENCE_MODE_STORED: 1
+  CONFIG_PERSISTENCE_MODE_STORED: 1,
 };
