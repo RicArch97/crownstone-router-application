@@ -1,46 +1,49 @@
 /**
  * Websocket for 2 way internet communication
  */
+
+import { topics } from "./declarations/topics";
+import { GeneralPacket } from "./packets/generalPacket";
+import { PacketParser } from "./packets/packetHandler";
+
+import { EventBusClass } from "crownstone-core"
+
 import * as http from "http";
 import * as crypto from "crypto";
 import { EventEmitter } from "events";
 import { Buffer } from "buffer";
 import internal from "stream";
 
-interface Opcodes {
-  text : number;
-  close: number;
-}
-
 export class WebSocketServer extends EventEmitter {
-  clients : Set<internal.Duplex> = new Set();
-  port : number;
+  clients: Set<internal.Duplex> = new Set();
+  eventBus: EventBusClass = new EventBusClass();
+  port: number;
   guid: string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  opcodes : Opcodes = { text: 0x01, close: 0x08 };
+  opCodes: WebSocketOpcodes = { text: 0x01, close: 0x08 };
 
-  _server? : http.Server;
+  _server?: http.Server;
 
-  constructor(port : number) {
+  constructor(port: number) {
     super();
     this.port = port || 8080;
     this._init();
   }
 
-  parseFrame(buffer : Buffer) {
+  parseFrame(buffer: Buffer): Buffer | undefined {
     const firstByte = buffer.readUInt8(0);
     // get opcode from frame (last 4 bits, according to RFC spec)
     const opCode = firstByte & 0xF;
 
-    if (opCode === this.opcodes.close) {
+    if (opCode === this.opCodes.close) {
       this.emit('close');
       return;
-    } else if (opCode !== this.opcodes.text) {
+    } else if (opCode !== this.opCodes.text) {
       return;
     }
 
     const secondByte = buffer.readUInt8(1);
     let bufferByteOffset = 2;
-     // parse payload length, last 7 bits of byte 2
+    // parse payload length, last 7 bits of byte 2
     let payloadLength = secondByte & 0x7F;
 
     // if length 126, use 2 bytes length, 8 bytes if 127 (according to RFC spec)
@@ -67,7 +70,7 @@ export class WebSocketServer extends EventEmitter {
     return buffer.subarray(bufferByteOffset);
   }
 
-  createFrame(payload : Buffer) {
+  createFrame(payload: Buffer): Buffer {
     const uint16Size = 65535;
 
     const payloadByteLength = Buffer.byteLength(payload);
@@ -97,17 +100,21 @@ export class WebSocketServer extends EventEmitter {
     } else if (payloadByteLength === 127) {
       buffer.writeBigInt64BE(BigInt(payloadByteLength), 2);
     }
-    
+
     // copy the entire payload into buffer, starting at payloadBytesOffset
     payload.copy(buffer, payloadBytesOffset);
 
     return buffer;
   }
 
-  addEventListener(callback : (() => void)) {
+  addConnectionListener(callback: (() => void)) {
     if (this._server) {
       this._server.listen(this.port, callback);
     }
+  }
+
+  addEventListener(topic: string, callback: (data: any) => void): () => void {
+    return this.eventBus.on(topic, callback);
   }
 
   _init() {
@@ -123,8 +130,8 @@ export class WebSocketServer extends EventEmitter {
       response.end(body);
     });
 
-    this._server.on("upgrade", (request, socket) => {
-      this.emit("headers", request);
+    this._server.on(topics.Upgrade, (request, socket) => {
+      this.emit(topics.Headers, request);
 
       if (request.headers.upgrade !== "websocket") {
         socket.end("HTTP/1.1 400 Bad Request");
@@ -148,25 +155,31 @@ export class WebSocketServer extends EventEmitter {
       this.clients.add(socket);
       socket.write(responseHeaders.concat("\r\n").join("\r\n"));
 
-      socket.on("data", (buffer) =>
-        this.emit("data", this.parseFrame(buffer))
-      );
+      socket.on(topics.RawData, (buffer: Buffer) => {
+        // parse websocket frame
+        const payload = this.parseFrame(buffer);
+        if (payload) {
+          const generalPacket = new GeneralPacket(payload);
+          // parse the packet, emit events on the event bus
+          PacketParser.parse(generalPacket, this.eventBus);
+        }
+      });
 
-      this.on("close", () => {
+      this.on(topics.Close, () => {
         this.clients.delete(socket);
         socket.destroy();
       });
     });
   }
 
-  _generateAcceptValue(acceptKey : string) {
+  _generateAcceptValue(acceptKey: string): string {
     return crypto
       .createHash("sha1")
       .update(acceptKey + this.guid, "binary")
       .digest("base64");
   }
 
-  _unmask(payload : Buffer, maskingKey : number) {
+  _unmask(payload: Buffer, maskingKey: number): Buffer {
     const result = Buffer.alloc(payload.byteLength);
 
     for (let i = 0; i < payload.byteLength; ++i) {

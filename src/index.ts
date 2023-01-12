@@ -1,11 +1,11 @@
 import { WebSocketServer } from "./websocket";
-import { Logger } from "tslog";
+import { Logger } from "./logger";
 
-export const _Logger = new Logger();
+const LOG = Logger("index", true);
 
 const PORT = 14500;
 const wsServer = new WebSocketServer(PORT);
 
-wsServer.addEventListener(() => {
-  _Logger.info(`WebSocket server listening on port ${PORT}`);
+wsServer.addConnectionListener(() => {
+  LOG.info(`WebSocket server listening on port ${PORT}`);
 });

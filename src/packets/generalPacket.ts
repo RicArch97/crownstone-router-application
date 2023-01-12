@@ -2,7 +2,6 @@
  * General packet definition in the Crownstone router protocol
  */
 import { Buffer } from "buffer";
-import { _Logger } from "..";
 
 export class GeneralPacket {
   protocolVersion!: number;
@@ -10,11 +9,15 @@ export class GeneralPacket {
   payloadLength!: number;
   payload!: Buffer;
 
-  constructor(payload : Buffer) {
+  valid: boolean = false;
+
+  constructor(payload: Buffer) {
     this.load(payload);
   }
 
   load(data: Buffer) {
+    this.valid = true;
+
     this.protocolVersion = data.readUInt8(0);
     this.payloadType = data.readUint8(1);
     let byteOffset = 2;
@@ -22,8 +25,8 @@ export class GeneralPacket {
     this.payloadLength = data.readUInt16BE(byteOffset);
     byteOffset += 2;
 
-    if ((byteOffset + this.payloadLength) !== data.length) {
-      _Logger.warn("General packet length is not equal to provided length, data may be truncated");
+    if (data.length < (byteOffset + this.payloadLength)) {
+      this.valid = false;
     }
 
     // get payload according to the provided message length
@@ -33,11 +36,11 @@ export class GeneralPacket {
 
 export class GeneralWrapper {
 
-  constructor(packet : GeneralPacket) {
+  constructor(packet: GeneralPacket) {
     this.wrap(packet);
   }
 
-  wrap(packet : GeneralPacket) {
+  wrap(packet: GeneralPacket) : Buffer {
     const data = Buffer.alloc(3 + packet.payloadLength);
 
     data.writeUInt8(packet.protocolVersion, 0);
