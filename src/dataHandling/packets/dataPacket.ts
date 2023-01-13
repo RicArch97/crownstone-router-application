@@ -5,7 +5,6 @@
 import { Buffer } from "buffer";
 
 export class DataPacket {
-  sourceType!: number;
   sourceId!: number;
   payloadLength!: number;
   payload!: Buffer;
@@ -19,9 +18,8 @@ export class DataPacket {
   load(data: Buffer) {
     this.valid = true;
 
-    this.sourceType = data.readUint8(0);
-    this.sourceId = data.readUint8(1);
-    let byteOffset = 2;
+    this.sourceId = data.readUint8(0);
+    let byteOffset = 1;
     // bytes should be provided as big endian
     this.payloadLength = data.readUInt16BE(byteOffset);
     byteOffset += 2;

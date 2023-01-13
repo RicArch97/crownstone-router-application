@@ -11,7 +11,7 @@ import {
 } from "./dataHandling/packets/controlPacket";
 import {
   CommandPacketType,
-  InstanceIdUart,
+  InstanceId,
   GenericPacketType,
 } from "./declarations/enums";
 import { Logger } from "./logger";
@@ -41,7 +41,7 @@ wsServer.addConnectionListener(() => {
  * the LDR values came from.
  */
 wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
-  if (data.sourceId !== InstanceIdUart.INSTANCE_ID_UART_RS485) {
+  if (data.sourceId !== InstanceId.INSTANCE_ID_UART_RS485) {
     return;
   }
   const ldrValue = parseInt(data.payload.toString("utf8"), 10);
@@ -66,7 +66,7 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
       GenericPacketType.PACKET_TYPE_CONTROL,
       ControlPacketWrapper.wrap(
         CommandPacketType.COMMAND_TYPE_SWITCH,
-        InstanceIdUart.INSTANCE_ID_UART_RS485,
+        InstanceId.INSTANCE_ID_UART_RS485,
         SwitchCommandWrapper.wrap(ledStatus)
       )
     );

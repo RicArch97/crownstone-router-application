@@ -38,30 +38,14 @@ export const ResultPacketType = {
   RESULT_TYPE_UNSPECIFIED: 128,
 };
 
-export const InstanceType = {
-  INSTANCE_TYPE_ESP32: 0,
-  INSTANCE_TYPE_UART: 1,
-  INSTANCE_TYPE_BLE: 2,
-  INSTANCE_TYPE_CLOUD: 3,
-};
-
-export const InstanceIdEsp32 = {
+export const InstanceId = {
   INSTANCE_ID_ESP32: 0,
-};
-
-export const InstanceIdUart = {
-  INSTANCE_ID_UART_RS485: 0,
-  INSTANCE_ID_UART_RS232: 1,
-  INSTANCE_ID_UART_CM4: 2,
-};
-
-export const InstanceIdCloud = {
-  INSTANCE_ID_CLOUD: 0,
-};
-
-export const InstanceIdBle = {
-  INSTANCE_ID_BLE_MESH: 0,
-  INSTANCE_ID_BLE_CLIENT: 1,
+  INSTANCE_ID_UART_RS485: 1,
+  INSTANCE_ID_UART_RS232: 2,
+  INSTANCE_ID_UART_CM4: 3,
+  INSTANCE_ID_CLOUD: 4,
+  INSTANCE_ID_BLE_MESH: 5,
+  INSTANCE_ID_BLE_CLIENT: 6,
 };
 
 export const ConfigType = {
