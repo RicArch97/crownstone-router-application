@@ -1,3 +1,7 @@
+/**
+ * Main application code
+ */
+
 import { WebSocketServer } from "./websocket";
 import { topics } from "./declarations/topics";
 import { DataPacket } from "./dataHandling/packets/dataPacket";
@@ -37,6 +41,9 @@ wsServer.addConnectionListener(() => {
  * the LDR values came from.
  */
 wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
+  if (data.sourceId !== InstanceIdUart.INSTANCE_ID_UART_RS485) {
+    return;
+  }
   const ldrValue = parseInt(data.payload.toString("utf8"), 10);
 
   let change = false;

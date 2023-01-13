@@ -1,6 +1,7 @@
 /**
  * Handles Crownstone router protocol packets
  */
+
 import { GenericPacket } from "./packets/genericPacket";
 import { DataPacket } from "./packets/dataPacket";
 import { topics } from "../declarations/topics";

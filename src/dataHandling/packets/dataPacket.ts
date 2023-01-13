@@ -1,6 +1,7 @@
 /**
  * Data packet definition in the Crownstone router protocol
  */
+
 import { Buffer } from "buffer";
 
 export class DataPacket {

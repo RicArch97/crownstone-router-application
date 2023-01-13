@@ -1,6 +1,7 @@
 /**
  * Generic packet definition in the Crownstone router protocol
  */
+
 import { Buffer } from "buffer";
 import { PROTOCOL_VERSION } from "../../declarations/const";
 
@@ -37,7 +38,7 @@ export class GenericPacket {
 
 export class GenericPacketWrapper {
   static wrap(payloadType: number, payload: Buffer): Buffer {
-    const data = Buffer.alloc(3 + payload.byteLength);
+    const data = Buffer.alloc(4 + payload.byteLength);
 
     data.writeUInt8(PROTOCOL_VERSION, 0);
     data.writeUint8(payloadType, 1);

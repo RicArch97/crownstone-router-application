@@ -1,3 +1,7 @@
+/**
+ * Event topics for event listeners
+ */
+
 export const topics = {
   // server & socket topics
   Upgrade: "upgrade",

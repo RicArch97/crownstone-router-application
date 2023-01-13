@@ -39,9 +39,14 @@ export const ResultPacketType = {
 };
 
 export const InstanceType = {
-  INSTANCE_TYPE_UART: 0,
-  INSTANCE_TYPE_BLE: 1,
-  INSTANCE_TYPE_CLOUD: 2,
+  INSTANCE_TYPE_ESP32: 0,
+  INSTANCE_TYPE_UART: 1,
+  INSTANCE_TYPE_BLE: 2,
+  INSTANCE_TYPE_CLOUD: 3,
+};
+
+export const InstanceIdEsp32 = {
+  INSTANCE_ID_ESP32: 0,
 };
 
 export const InstanceIdUart = {
@@ -51,7 +56,7 @@ export const InstanceIdUart = {
 };
 
 export const InstanceIdCloud = {
-  INSTANCE_ID_CLOUD_SERVER: 0,
+  INSTANCE_ID_CLOUD: 0,
 };
 
 export const InstanceIdBle = {
