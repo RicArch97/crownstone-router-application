@@ -15,7 +15,7 @@ export class ControlPacketWrapper {
     data.writeUInt8(commandType, 0);
     data.writeUint8(destId, 1);
     let byteOffset = 2;
-    // write big endian, firmware also expects this
+    // write little endian, firmware also expects this
     data.writeUInt16LE(payload.byteLength, byteOffset);
     byteOffset += 2;
 

@@ -20,8 +20,8 @@ export class DataPacket {
 
     this.sourceId = data.readUint8(0);
     let byteOffset = 1;
-    // bytes should be provided as big endian
-    this.payloadLength = data.readUInt16BE(byteOffset);
+    // bytes should be provided as little endian
+    this.payloadLength = data.readUInt16LE(byteOffset);
     byteOffset += 2;
 
     if (data.byteLength < byteOffset + this.payloadLength) {

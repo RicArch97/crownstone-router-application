@@ -26,7 +26,7 @@ const LED_OFF = 0;
 
 const wsServer = new WebSocketServer(PORT);
 
-let ledStatus = LED_OFF;
+let ledState = LED_OFF;
 
 wsServer.addConnectionListener(() => {
   LOG.info(`WebSocket server listening on port ${PORT}`);
@@ -49,13 +49,13 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
   let change = false;
 
   // assume the LED is off by default
-  if (ldrValue < LDR_LIMIT && ledStatus == LED_OFF) {
+  if (ldrValue < LDR_LIMIT && ledState == LED_OFF) {
     change = true;
-    ledStatus = LED_ON;
+    ledState = LED_ON;
   }
-  if (ldrValue > LDR_LIMIT && ledStatus == LED_ON) {
+  if (ldrValue > LDR_LIMIT && ledState == LED_ON) {
     change = true;
-    ledStatus = LED_OFF;
+    ledState = LED_OFF;
   }
 
   // only send a command when status needs to be changed
@@ -67,7 +67,7 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
       ControlPacketWrapper.wrap(
         CommandPacketType.COMMAND_TYPE_SWITCH,
         InstanceId.INSTANCE_ID_UART_RS485,
-        SwitchCommandWrapper.wrap(ledStatus)
+        SwitchCommandWrapper.wrap(ledState)
       )
     );
 

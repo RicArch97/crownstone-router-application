@@ -23,8 +23,8 @@ export class GenericPacket {
     this.protocolVersion = data.readUInt8(0);
     this.payloadType = data.readUint8(1);
     let byteOffset = 2;
-    // bytes should be provided as big endian
-    this.payloadLength = data.readUInt16BE(byteOffset);
+    // bytes should be provided as little endian
+    this.payloadLength = data.readUInt16LE(byteOffset);
     byteOffset += 2;
 
     if (data.length < byteOffset + this.payloadLength) {
@@ -43,8 +43,8 @@ export class GenericPacketWrapper {
     data.writeUInt8(PROTOCOL_VERSION, 0);
     data.writeUint8(payloadType, 1);
     let byteOffset = 2;
-    // write big endian, firmware also expects this
-    data.writeUInt16BE(payload.byteLength, byteOffset);
+    // write little endian, firmware also expects this
+    data.writeUInt16LE(payload.byteLength, byteOffset);
     byteOffset += 2;
 
     // copy all bytes from payload into data, starting at byteOffset
