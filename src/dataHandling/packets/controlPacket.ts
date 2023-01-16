@@ -7,14 +7,16 @@ import { Buffer } from "buffer";
 export class ControlPacketWrapper {
   static wrap(
     commandType: number,
+    sourceId: number,
     destId: number,
     payload: Buffer
   ) {
     const data = Buffer.alloc(4 + payload.byteLength);
 
     data.writeUInt8(commandType, 0);
-    data.writeUint8(destId, 1);
-    let byteOffset = 2;
+    data.writeUInt8(sourceId, 1);
+    data.writeUint8(destId, 2);
+    let byteOffset = 3;
     // write little endian, firmware also expects this
     data.writeUInt16LE(payload.byteLength, byteOffset);
     byteOffset += 2;

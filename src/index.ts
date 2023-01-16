@@ -66,6 +66,7 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
       GenericPacketType.PACKET_TYPE_CONTROL,
       ControlPacketWrapper.wrap(
         CommandPacketType.COMMAND_TYPE_SWITCH,
+        InstanceId.INSTANCE_ID_CLOUD,
         InstanceId.INSTANCE_ID_UART_RS485,
         SwitchCommandWrapper.wrap(ledState)
       )
