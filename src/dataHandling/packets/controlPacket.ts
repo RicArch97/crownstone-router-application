@@ -11,7 +11,7 @@ export class ControlPacketWrapper {
     destId: number,
     payload: Buffer
   ) {
-    const data = Buffer.alloc(4 + payload.byteLength);
+    const data = Buffer.alloc(5 + payload.byteLength);
 
     data.writeUInt8(commandType, 0);
     data.writeUInt8(sourceId, 1);
