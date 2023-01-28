@@ -3,7 +3,7 @@
  */
 
 import { topics } from "./declarations/topics";
-import { GenericPacket } from "./dataHandling/packets/genericPacket";
+import { GenericPacket } from "./dataHandling/packets/router/genericPacket";
 import { PacketParser } from "./dataHandling/packetHandler";
 import { UPGRADE_REQUIRED, UINT16_SIZE } from "./declarations/const";
 

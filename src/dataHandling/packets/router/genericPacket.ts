@@ -3,7 +3,7 @@
  */
 
 import { Buffer } from "buffer";
-import { PROTOCOL_VERSION } from "../../declarations/const";
+import { PROTOCOL_VERSION } from "../../../declarations/const";
 
 export class GenericPacket {
   protocolVersion!: number;

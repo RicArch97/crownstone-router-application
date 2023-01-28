@@ -1,5 +1,5 @@
 /**
- * Enums from the Crownstone router protocol.
+ * Enums from the Crownstone router protocol & Crownstone protocol.
  */
 
 export const GenericPacketType = {
@@ -16,6 +16,7 @@ export const CommandPacketType = {
   COMMAND_TYPE_RESET: 4,
   COMMAND_TYPE_FACTORY_RESET: 5,
   COMMAND_TYPE_SWITCH: 6,
+  COMMAND_TYPE_REQUEST: 7,
 };
 
 export const ResultPacketType = {
@@ -37,13 +38,14 @@ export const ResultPacketType = {
 };
 
 export const InstanceId = {
-  INSTANCE_ID_ESP32: 0,
-  INSTANCE_ID_UART_RS485: 1,
-  INSTANCE_ID_UART_RS232: 2,
-  INSTANCE_ID_UART_CM4: 3,
-  INSTANCE_ID_CLOUD: 4,
-  INSTANCE_ID_BLE_CROWNSTONE_MESH: 5,
-  INSTANCE_ID_BLE_CROWNSTONE_CLIENT: 6,
+  INSTANCE_ID_UNKNOWN: 0,
+  INSTANCE_ID_ESP32: 1,
+  INSTANCE_ID_UART_RS485: 2,
+  INSTANCE_ID_UART_RS232: 3,
+  INSTANCE_ID_UART_CM4: 4,
+  INSTANCE_ID_CLOUD: 5,
+  INSTANCE_ID_BLE_CROWNSTONE_MESH: 6,
+  INSTANCE_ID_BLE_CROWNSTONE_PERIPHERAL: 7,
 };
 
 export const ConfigType = {
@@ -61,4 +63,9 @@ export const GetConfigPersistenceMode = {
   GET_CONFIG_PERSISTENCE_MODE_CURRENT: 0,
   GET_CONFIG_PERSISTENCE_MODE_STORED: 1,
   GET_CONFIG_PERSISTENCE_MODE_FIRMWARE_DEFAULT: 2,
+};
+
+// Crownstone command types
+export const CrownstoneCommandPacketType = {
+  COMMAND_TYPE_SWITCH: 20,
 };
