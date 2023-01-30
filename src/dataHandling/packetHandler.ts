@@ -9,7 +9,8 @@ import { GenericPacketType } from "../declarations/enums";
 import { Logger } from "../logger";
 import { PROTOCOL_VERSION, UINT16_SIZE } from "../declarations/const";
 
-import { EventBusClass, ResultPacket } from "crownstone-core";
+import { EventBusClass } from "crownstone-core";
+import { ResultPacket } from "./packets/router/resultPacket";
 
 const LOG = Logger("PacketParser");
 

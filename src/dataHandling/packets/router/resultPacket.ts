@@ -29,8 +29,6 @@ export class ResultPacket {
     this.payloadLength = data.readUInt16LE(byteOffset);
     byteOffset += 2;
 
-    console.log("Result length: %d, calculated: %d", data.byteLength, byteOffset + this.payloadLength);
-
     if (data.byteLength < byteOffset + this.payloadLength) {
       this.valid = false;
     }

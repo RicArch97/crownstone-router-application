@@ -60,7 +60,7 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
 
   let change = false;
 
-  // assume the LED is off by default
+  // assume the Crownstone is off by default
   if (ldrValue < LDR_LIMIT && crwnState == CRWN_OFF) {
     change = true;
     crwnState = CRWN_ON;
