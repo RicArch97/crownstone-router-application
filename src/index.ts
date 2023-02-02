@@ -11,6 +11,7 @@ import {
   InstanceId,
   GenericPacketType,
   CrownstoneCommandPacketType,
+  ResultPacketType,
 } from "./declarations/enums";
 import { Logger } from "./logger";
 import { GenericPacketWrapper } from "./dataHandling/packets/router/genericPacket";
@@ -85,7 +86,6 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
         requestPayload
       )
     );
-
     wsServer.fireEvent(topics.WriteData, genericPacketBuffer);
   }
 });
@@ -97,12 +97,17 @@ wsServer.addEventListener(topics.DataPacket, (data: DataPacket) => {
  * The second result is the result of the switch.
  */
 wsServer.addEventListener(topics.ResultPacket, (data: ResultPacket) => {
-  if (data.commandType === CommandPacketType.COMMAND_TYPE_REQUEST) {
-    if (data.resultId !== requestId) {
-      LOG.warn("Received result ID does not match request ID");
-      return;
-    }
-
+  if (data.resultId !== requestId) {
+    LOG.warn("Received result ID does not match request ID");
+    return;
+  }
+  if (data.resultCode != ResultPacketType.RESULT_TYPE_SUCCES) {
+    LOG.warn(
+      "Result to command %d unsuccesfull, returned value %d",
+      data.commandType,
+      data.resultCode
+    );
+  } else if (data.commandType === CommandPacketType.COMMAND_TYPE_REQUEST) {
     // get session data
     const sessionData = new CrownstoneSessionDataPacket(
       data.payload,
@@ -137,7 +142,11 @@ wsServer.addEventListener(topics.ResultPacket, (data: ResultPacket) => {
         )
       )
     );
-
     wsServer.fireEvent(topics.WriteData, crownstoneSwitchPacketBuffer);
+  } else if (data.commandType === CommandPacketType.COMMAND_TYPE_SWITCH) {
+    // result from a switch
+    
+  } else {
+    LOG.warn("Unhandled result packet with type: %d", data.commandType);
   }
 });

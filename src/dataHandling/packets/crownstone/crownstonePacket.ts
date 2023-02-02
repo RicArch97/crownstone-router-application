@@ -5,6 +5,41 @@
 import { Buffer } from "buffer";
 import * as aesjs from "aes-js";
 
+export class CrownstonePacket {
+  validationKey!: Buffer;
+  payload!: Buffer;
+
+  valid: boolean = false;
+
+  constructor(payload: Buffer, encryptionKey: string, sessionNonce: Buffer) {
+    this.load(payload, encryptionKey, sessionNonce);
+  }
+
+  load(data: Buffer, encryptionKey: string, sessionNonce: Buffer) {
+    this.valid = true;
+
+    // create nonce from packet none + session nonce
+    const iv = Buffer.alloc(16);
+    data.copy(iv, 0, 0, 3);
+    sessionNonce.copy(iv, 3);
+
+    // convert basic key to hex
+    const keyBytes = aesjs.utils.hex.toBytes(encryptionKey);
+    // encryption: set mode of operation
+    const aesCtr = new aesjs.ModeOfOperation.ctr(
+      keyBytes,
+      new aesjs.Counter(iv)
+    );
+
+    // decrypt the packet
+    const encryptedPayload = data.subarray(4);
+    const decryptedPayload = Buffer.from(aesCtr.decrypt(encryptedPayload));
+    // save the attributes
+    this.validationKey = decryptedPayload.subarray(0, 3)
+    this.payload = decryptedPayload.subarray(4);
+  }
+}
+
 export class CrownstonePacketWrapper {
   static wrap(
     encryptionKey: string,
@@ -13,7 +48,7 @@ export class CrownstonePacketWrapper {
     validationKey: Buffer,
     payload: Buffer
   ): Buffer {
-    // create nonce from packet none + session nonce
+    // create nonce from packet nonce + session nonce
     const iv = Buffer.alloc(16);
     // set session nonce
     nonce.copy(iv, 3);
