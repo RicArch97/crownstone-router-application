@@ -12,6 +12,7 @@ import {
   GenericPacketType,
   CrownstoneCommandPacketType,
   ResultPacketType,
+  CrownstoneResultCodes,
 } from "./declarations/enums";
 import { Logger } from "./logger";
 import { GenericPacketWrapper } from "./dataHandling/packets/router/genericPacket";
@@ -19,11 +20,15 @@ import { randInt } from "./util";
 import { UINT16_SIZE } from "./declarations/const";
 import { ResultPacket } from "./dataHandling/packets/router/resultPacket";
 import { CrownstoneSessionDataPacket } from "./dataHandling/packets/crownstone/crownstoneSessionData";
-import { CrownstonePacketWrapper } from "./dataHandling/packets/crownstone/crownstonePacket";
+import {
+  CrownstonePacket,
+  CrownstonePacketWrapper,
+} from "./dataHandling/packets/crownstone/crownstonePacket";
 import {
   CrownstoneControlPacketWrapper,
   CrownstoneSwitchCommandValueWrapper,
 } from "./dataHandling/packets/crownstone/crownstoneControlPacket";
+import { CrownstoneResultPacket } from "./dataHandling/packets/crownstone/crownstoneResultPacket";
 
 const LOG = Logger("index");
 
@@ -41,6 +46,7 @@ const wsServer = new WebSocketServer(PORT);
 
 let crwnState = CRWN_OFF;
 let requestId = randInt(1, UINT16_SIZE);
+let sessionNonce = Buffer.alloc(5);
 
 wsServer.addConnectionListener(() => {
   LOG.info(`WebSocket server listening on port ${PORT}`);
@@ -120,6 +126,7 @@ wsServer.addEventListener(topics.ResultPacket, (data: ResultPacket) => {
     } while (newRequestId == requestId);
 
     requestId = newRequestId;
+    sessionData.nonce.copy(sessionNonce);
 
     // create a Crownstone packet from control and switch
     const crownstoneSwitchPacketBuffer = GenericPacketWrapper.wrap(
@@ -131,7 +138,7 @@ wsServer.addEventListener(topics.ResultPacket, (data: ResultPacket) => {
         requestId,
         CrownstonePacketWrapper.wrap(
           ENCRYPTION_KEY,
-          sessionData.nonce,
+          sessionNonce,
           KEY_USER_LEVEL,
           sessionData.validationKey,
           CrownstoneControlPacketWrapper.wrap(
@@ -144,8 +151,17 @@ wsServer.addEventListener(topics.ResultPacket, (data: ResultPacket) => {
     );
     wsServer.fireEvent(topics.WriteData, crownstoneSwitchPacketBuffer);
   } else if (data.commandType === CommandPacketType.COMMAND_TYPE_SWITCH) {
-    // result from a switch
-    
+    // get crownstone packet
+    const crownstonePacket = new CrownstonePacket(
+      data.payload,
+      ENCRYPTION_KEY,
+      sessionNonce
+    );
+    // get result packet from data
+    const resultPacket = new CrownstoneResultPacket(crownstonePacket.payload);
+    if (resultPacket.resultCode == CrownstoneResultCodes.SUCCESS) {
+      LOG.info("Crownstone was switched!");
+    }
   } else {
     LOG.warn("Unhandled result packet with type: %d", data.commandType);
   }
