@@ -13,7 +13,10 @@ import * as http from "http";
 import * as crypto from "crypto";
 import { EventEmitter } from "events";
 import { Buffer } from "buffer";
-import internal from "stream";
+import { Socket } from "net";
+import { Logger } from "./logger";
+
+const LOG = Logger("websocket");
 
 interface WebSocketOpcodes {
   text: number;
@@ -21,7 +24,7 @@ interface WebSocketOpcodes {
 }
 
 export class WebSocketServer extends EventEmitter {
-  clients: Set<internal.Duplex> = new Set();
+  clients: Set<Socket> = new Set();
   eventBus: EventBusClass = new EventBusClass();
   port: number;
   guid: string = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -137,50 +140,63 @@ export class WebSocketServer extends EventEmitter {
       response.end(body);
     });
 
-    this._server.on(topics.Upgrade, (request, socket) => {
-      this.emit(topics.Headers, request);
+    this._server.on(
+      topics.Upgrade,
+      (response: http.IncomingMessage, socket: Socket) => {
+        this.emit(topics.Headers, response);
 
-      if (request.headers.upgrade !== "websocket") {
-        socket.end("HTTP/1.1 400 Bad Request");
-        return;
-      }
-
-      const acceptKey = request.headers["sec-websocket-key"];
-      if (!acceptKey) {
-        socket.end("HTTP/1.1 400 Bad Request");
-        return;
-      }
-      const acceptValue = this._generateAcceptValue(acceptKey);
-
-      const responseHeaders = [
-        "HTTP/1.1 101 Switching Protocols",
-        "Upgrade: websocket",
-        "Connection: Upgrade",
-        `Sec-WebSocket-Accept: ${acceptValue}`,
-      ];
-
-      this.clients.add(socket);
-      socket.write(responseHeaders.concat("\r\n").join("\r\n"));
-
-      socket.on(topics.RawData, (buffer: Buffer) => {
-        // parse websocket frame
-        const payload = this.parseFrame(buffer);
-        if (payload) {
-          const generalPacket = new GenericPacket(payload);
-          // parse the packet, emit events on the event bus
-          PacketParser.parse(generalPacket, this.eventBus);
+        for (let client of this.clients.values()) {
+          if (client.remoteAddress === socket.remoteAddress) {
+            LOG.warn(
+              "Refusing connection to client on address %d, already connected",
+              socket.remoteAddress
+            );
+            return;
+          }
         }
-      });
 
-      this.eventBus.on(topics.WriteData, (data: Buffer) =>
-        socket.write(this.createFrame(data))
-      );
+        if (response.headers.upgrade !== "websocket") {
+          socket.end("HTTP/1.1 400 Bad Request");
+          return;
+        }
 
-      this.on(topics.Close, () => {
-        this.clients.delete(socket);
-        socket.destroy();
-      });
-    });
+        const acceptKey = response.headers["sec-websocket-key"];
+        if (!acceptKey) {
+          socket.end("HTTP/1.1 400 Bad Request");
+          return;
+        }
+        const acceptValue = this._generateAcceptValue(acceptKey);
+
+        const responseHeaders = [
+          "HTTP/1.1 101 Switching Protocols",
+          "Upgrade: websocket",
+          "Connection: Upgrade",
+          `Sec-WebSocket-Accept: ${acceptValue}`,
+        ];
+
+        this.clients.add(socket);
+        socket.write(responseHeaders.concat("\r\n").join("\r\n"));
+
+        socket.on(topics.RawData, (buffer: Buffer) => {
+          // parse websocket frame
+          const payload = this.parseFrame(buffer);
+          if (payload) {
+            const generalPacket = new GenericPacket(payload);
+            // parse the packet, emit events on the event bus
+            PacketParser.parse(generalPacket, this.eventBus);
+          }
+        });
+
+        this.eventBus.on(topics.WriteData, (data: Buffer) =>
+          socket.write(this.createFrame(data))
+        );
+
+        this.on(topics.Close, () => {
+          this.clients.delete(socket);
+          socket.destroy();
+        });
+      }
+    );
   }
 
   _generateAcceptValue(acceptKey: string): string {
