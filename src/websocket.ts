@@ -44,7 +44,7 @@ export class WebSocketServer extends EventEmitter {
     const opCode = firstByte & 0xf;
 
     if (opCode === this.opCodes.close) {
-      this.emit("close");
+      this.emit(topics.Close);
       return;
     } else if (opCode !== this.opCodes.text) {
       return;
